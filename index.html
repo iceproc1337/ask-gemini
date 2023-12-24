@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        .chat-container {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+        }
+
+        .chat-bubble {
+            max-width: 60%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 20px;
+            background-color: #f0f0f0;
+        }
+
+        .input-container {
+            padding: 10px;
+            background-color: #ddd;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 20px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="chat-container">
+        <div class="chat-bubble">Hello, how can I assist you?</div>
+        <div class="chat-bubble">Sure, I can help with that.</div>
+    </div>
+    <div class="input-container">
+        <input class="input-field" type="text" placeholder="Ask something...">
+    </div>
+</body>
+
+</html>
