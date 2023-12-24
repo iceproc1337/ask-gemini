@@ -27,6 +27,38 @@
             background-color: #f0f0f0;
             display: table;
             clear: both;
+            position: relative;
+        }
+
+        .chat-bubble::before {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            left: -6px;
+            border-width: 10px;
+            border-style: solid;
+            border-color: transparent transparent #f0f0f0 transparent;
+        }
+
+        .chat-bubble-right {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 20px;
+            background-color: #dcf8c6;
+            display: table;
+            clear: both;
+            position: relative;
+            float: right;
+        }
+
+        .chat-bubble-right::before {
+            content: "";
+            position: absolute;
+            bottom: 0;
+            right: -6px;
+            border-width: 10px;
+            border-style: solid;
+            border-color: transparent transparent #dcf8c6 transparent;
         }
 
         .input-container {
@@ -43,13 +75,25 @@
         }
     </style>
     <script>
+        function domAddUserInput(text) {
+            var chatContainer = document.querySelector('.chat-container');
+            var chatBubble = document.createElement('div');
+            chatBubble.classList.add('chat-bubble-right'); // Added class
+            chatBubble.innerText = text;
+            chatContainer.appendChild(chatBubble);
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
             var inputField = document.getElementById('input-field');
             var form = document.getElementById('chat-form');
 
             form.addEventListener('submit', function (e) {
                 e.preventDefault(); // prevent form submission
-                console.log(inputField.value);
+                let text = inputField.value;
+                console.log(text);
+
+                domAddUserInput(text.toString());
+
                 inputField.value = ''; // clear the input field
             });
         });
@@ -61,6 +105,7 @@
     <div class="chat-container">
         <div class="chat-bubble">Hello, how can I assist you?</div>
         <div class="chat-bubble">Sure, I can help with that.</div>
+        <div class="chat-bubble-right">Hi, I would like to ask something</div>
     </div>
     <div class="input-container">
         <form id="chat-form">
