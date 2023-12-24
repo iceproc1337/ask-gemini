@@ -42,6 +42,19 @@
             box-sizing: border-box;
         }
     </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var inputField = document.getElementById('input-field');
+            var form = document.getElementById('chat-form');
+
+            form.addEventListener('submit', function (e) {
+                e.preventDefault(); // prevent form submission
+                console.log(inputField.value);
+                inputField.value = ''; // clear the input field
+            });
+        });
+    </script>
+
 </head>
 
 <body>
@@ -50,7 +63,10 @@
         <div class="chat-bubble">Sure, I can help with that.</div>
     </div>
     <div class="input-container">
-        <input class="input-field" type="text" placeholder="Ask something...">
+        <form id="chat-form">
+            <input class="input-field" type="text" placeholder="Ask something..." id="input-field">
+            <input type="submit" style="display: none;">
+        </form>
     </div>
 </body>
 
