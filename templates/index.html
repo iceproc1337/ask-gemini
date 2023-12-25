@@ -144,10 +144,21 @@
             chatContainer.appendChild(chatBubble);
         }
 
+        function domAddGeminiOutput(text) {
+            var chatContainer = document.querySelector('.chat-container');
+            var chatBubble = document.createElement('div');
+            chatBubble.classList.add('chat-bubble');
+            chatBubble.classList.add('chat-bubble-left');
+            chatBubble.innerText = text;
+            chatContainer.appendChild(chatBubble);
+        }
+
         function toggleMenu() {
             var menuItems = document.querySelector('.menu-items');
             menuItems.classList.toggle('show');
         }
+
+
 
         function onDomContentLoaded() {
             var inputField = document.getElementById('input-field');
@@ -159,6 +170,19 @@
                 console.log(text);
 
                 domAddUserInput(text.toString());
+
+                // Send HTTP POST request to "/ask-gemini" with parameter "query" of value text.toString()
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", "/ask-gemini", true);
+                xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4 && xhr.status === 200) {
+                        // Handle the response here
+                        console.log(xhr.responseText);
+                        domAddGeminiOutput(xhr.responseText);
+                    }
+                };
+                xhr.send("query=" + encodeURIComponent(text.toString()));
 
                 inputField.value = ''; // clear the input field
             });
