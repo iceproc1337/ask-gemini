@@ -14,6 +14,76 @@
             font-family: Arial, sans-serif;
         }
 
+        .title {
+            display: flex;
+            height: 44px;
+            background-color: #007AFF;
+            /* iOS blue color */
+            color: #fff;
+            /* white text color */
+            font-size: 20px;
+            text-align: center;
+            justify-content: center;
+            align-items: center;
+            padding-left: 44px;
+            padding-right: 44px;
+            min-width: 0;
+            flex-grow: 1;
+        }
+
+        .title-text {
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .title-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .menu-button {
+            position: absolute;
+            right: 0;
+            background-color: transparent;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            width: 44px;
+            height: 44px;
+        }
+
+        .menu-button svg {
+            fill: #000;
+            width: 24px;
+            height: 24px;
+        }
+
+        .menu-items {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            /* Align the right side with the right side of the menu-button */
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            z-index: 1;
+        }
+
+        .menu-items.show {
+            display: block;
+        }
+
+        .menu-item {
+            padding: 5px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
         .chat-container {
             flex: 1;
             padding: 10px;
@@ -83,7 +153,7 @@
             chatContainer.appendChild(chatBubble);
         }
 
-        document.addEventListener('DOMContentLoaded', function () {
+        function onDomContentLoaded() {
             var inputField = document.getElementById('input-field');
             var form = document.getElementById('chat-form');
 
@@ -96,12 +166,41 @@
 
                 inputField.value = ''; // clear the input field
             });
+        }
+
+        document.addEventListener('DOMContentLoaded', onDomContentLoaded);
+
+        // Existing JavaScript code
+
+        function toggleMenu() {
+            var menuItems = document.querySelector('.menu-items');
+            menuItems.classList.toggle('show');
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            var menuButton = document.querySelector('.menu-button');
+            menuButton.addEventListener('click', toggleMenu);
         });
     </script>
 
 </head>
 
 <body>
+    <div class="title-wrapper">
+        <div class="title">
+            <div class="title-text">Ask Gemini</div>
+        </div>
+        <button class="menu-button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
+            </svg>
+            <div class="menu-items">
+                <div class="menu-item">Menu Item 1</div>
+                <div class="menu-item">Menu Item 2</div>
+                <div class="menu-item">Menu Item 3</div>
+            </div>
+        </button>
+    </div>
     <div class="chat-container">
         <div class="chat-bubble">Hello, how can I assist you?</div>
         <div class="chat-bubble">Sure, I can help with that.</div>
@@ -114,5 +213,3 @@
         </form>
     </div>
 </body>
-
-</html>
