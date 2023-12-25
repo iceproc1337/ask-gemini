@@ -7,6 +7,7 @@ name = "pypi"
 flask = "3.0.0"
 google-generativeai = "0.3.2"
 python-dotenv = "1.0.0"
+waitress = "*"
 
 [dev-packages]
 pytest = "*"
@@ -16,5 +17,5 @@ python_version = "3.11"
 
 [scripts]
 start = "python src/app.py"
-production = "FLASK_ENV=production python src/app.py"
+production = "FLASK_ENV=production waitress-serve --port=8080 --call app:create_app"
 test = "pytest"

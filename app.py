@@ -3,9 +3,9 @@ import os
 import google.generativeai as genai
 from datetime import timedelta
 from flask import Flask, request, render_template, make_response
-from security.secure_uuid4 import secure_uuid4
-from security.mask_sensitive_data import mask_sensitive_data
-from ChatSession import ChatSession
+from src.security.secure_uuid4 import secure_uuid4
+from src.security.mask_sensitive_data import mask_sensitive_data
+from src.ChatSession import ChatSession
 
 # -------------------------------------------------DOTENV------------------------------------------------------
 
@@ -167,3 +167,7 @@ def reset_user_token():
 
 if __name__ == "__main__":
     app.run()
+
+
+def create_app():
+    return app
