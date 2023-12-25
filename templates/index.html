@@ -25,8 +25,7 @@
             text-align: center;
             justify-content: center;
             align-items: center;
-            padding-left: 44px;
-            padding-right: 44px;
+            padding: 0 44px;
             min-width: 0;
             flex-grow: 1;
         }
@@ -40,8 +39,6 @@
 
         .title-wrapper {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
 
         .menu-button {
@@ -66,7 +63,6 @@
             position: absolute;
             top: 100%;
             right: 0;
-            /* Align the right side with the right side of the menu-button */
             background-color: #fff;
             padding: 10px;
             border-radius: 5px;
@@ -100,7 +96,7 @@
             position: relative;
         }
 
-        .chat-bubble::before {
+        .chat-bubble.chat-bubble-left::before {
             content: "";
             position: absolute;
             bottom: 0;
@@ -110,18 +106,12 @@
             border-color: transparent transparent #f0f0f0 transparent;
         }
 
-        .chat-bubble-right {
-            padding: 10px;
-            margin-bottom: 10px;
-            border-radius: 20px;
+        .chat-bubble.chat-bubble-right {
             background-color: #dcf8c6;
-            display: table;
-            clear: both;
-            position: relative;
             float: right;
         }
 
-        .chat-bubble-right::before {
+        .chat-bubble.chat-bubble-right::before {
             content: "";
             position: absolute;
             bottom: 0;
@@ -148,9 +138,15 @@
         function domAddUserInput(text) {
             var chatContainer = document.querySelector('.chat-container');
             var chatBubble = document.createElement('div');
-            chatBubble.classList.add('chat-bubble-right'); // Added class
+            chatBubble.classList.add('chat-bubble');
+            chatBubble.classList.add('chat-bubble-right');
             chatBubble.innerText = text;
             chatContainer.appendChild(chatBubble);
+        }
+
+        function toggleMenu() {
+            var menuItems = document.querySelector('.menu-items');
+            menuItems.classList.toggle('show');
         }
 
         function onDomContentLoaded() {
@@ -166,21 +162,13 @@
 
                 inputField.value = ''; // clear the input field
             });
+
+            // Show menu items when menu button is clicked
+            var menuButton = document.querySelector('.menu-button');
+            menuButton.addEventListener('click', toggleMenu);
         }
 
         document.addEventListener('DOMContentLoaded', onDomContentLoaded);
-
-        // Existing JavaScript code
-
-        function toggleMenu() {
-            var menuItems = document.querySelector('.menu-items');
-            menuItems.classList.toggle('show');
-        }
-
-        document.addEventListener('DOMContentLoaded', function () {
-            var menuButton = document.querySelector('.menu-button');
-            menuButton.addEventListener('click', toggleMenu);
-        });
     </script>
 
 </head>
@@ -195,16 +183,14 @@
                 <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
             </svg>
             <div class="menu-items">
-                <div class="menu-item">Menu Item 1</div>
-                <div class="menu-item">Menu Item 2</div>
-                <div class="menu-item">Menu Item 3</div>
+                <div class="menu-item">Reset</div>
             </div>
         </button>
     </div>
     <div class="chat-container">
-        <div class="chat-bubble">Hello, how can I assist you?</div>
-        <div class="chat-bubble">Sure, I can help with that.</div>
-        <div class="chat-bubble-right">Hi, I would like to ask something</div>
+        <div class="chat-bubble chat-bubble-left">Hello, how can I assist you?</div>
+        <div class="chat-bubble chat-bubble-left">Sure, I can help with that.</div>
+        <div class="chat-bubble chat-bubble-right">Hi, I would like to ask something</div>
     </div>
     <div class="input-container">
         <form id="chat-form">
