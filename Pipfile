@@ -15,6 +15,6 @@ pytest = "*"
 python_version = "3.11"
 
 [scripts]
-start = "python app.py"
-production = "FLASK_ENV=production python app.py"
+start = "python src/app.py"
+production = "FLASK_ENV=production python src/app.py"
 test = "pytest"

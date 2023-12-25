@@ -3,7 +3,7 @@ function addChatBubble(text, isUser) {
     const chatBubble = document.createElement('div');
     chatBubble.classList.add('chat-bubble');
     chatBubble.classList.add(isUser ? 'chat-bubble-right' : 'chat-bubble-left');
-    chatBubble.innerText = text;
+    chatBubble.innerHTML = isUser ? text : marked.parse(text);
     chatContainer.appendChild(chatBubble);
 
     // Check if the user is already scrolled to the bottom
@@ -51,12 +51,35 @@ function handleFormSubmit(event) {
     inputField.value = ''; // clear the input field
 }
 
+function resetChat() {
+    const chatContainer = document.querySelector('.chat-container');
+    chatContainer.innerHTML = '';
+
+    // Send HTTP GET request to "/reset"
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", "/reset", true);
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+            // Handle the response here
+            console.log(xhr.responseText);
+
+            // Reset chat container content
+            chatContainer.innerHTML = '';
+
+            addChatBubble(xhr.responseText, false);
+        }
+    };
+    xhr.send();
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('chat-form');
     const menuButton = document.querySelector('.menu-button');
     const chatContainer = document.querySelector('.chat-container');
+    const resetButton = document.querySelector('.menu-item-reset');
 
     menuButton.addEventListener('click', toggleMenu);
     chatContainer.addEventListener('click', copyCodeToClipboard);
     form.addEventListener('submit', handleFormSubmit);
+    resetButton.addEventListener('click', resetChat);
 });

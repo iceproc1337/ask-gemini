@@ -1,3 +1,4 @@
+import datetime
 import os
 import google.generativeai as genai
 from datetime import timedelta
@@ -97,9 +98,10 @@ chat_sessions = {}
 
 # ---------------------------------------------Flask web server---------------------------------------------
 
-app = Flask(__name__)
-
-if os.getenv("FLASK_ENV") != "production":
+if os.getenv("FLASK_ENV") == "production":
+    app = Flask(__name__)
+else:
+    app = Flask(__name__, template_folder="../templates")
     print("-----------Development mode-------------")
     print("index.html, main.js and main.css will be served by Flask.")
     print("----------------------------------------")
@@ -139,6 +141,14 @@ def refresh_user_token(response, user_token):
     )
 
 
+@app.before_request
+def cleanup_chat_sessions():
+    # Prune chat_sessions dictionary
+    for user_token, chat_session in list(chat_sessions.items()):
+        if chat_session.last_updated < datetime.datetime.now() - timedelta(days=30):
+            del chat_sessions[user_token]
+
+
 @app.route("/ask-gemini", methods=["POST"])
 def process_user_message_and_return_reply():
     user_token = get_user_token()
@@ -156,7 +166,8 @@ def process_user_message_and_return_reply():
 def reset_user_token():
     user_token = get_user_token()
 
-    del chat_sessions[user_token]
+    if user_token in chat_sessions:
+        del chat_sessions[user_token]
 
     response = make_response(
         "🤖 History Reset for user: " + mask_sensitive_data(user_token)
