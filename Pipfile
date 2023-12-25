@@ -5,6 +5,8 @@ name = "pypi"
 
 [packages]
 flask = "3.0.0"
+"google.generativeai" = "0.3.2"
+python-dotenv = "1.0.0"
 
 [dev-packages]
 pytest = "*"
