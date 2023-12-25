@@ -1,0 +1,81 @@
+# Project Name
+
+This is a Flask application. 
+
+## Getting Started
+
+These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
+
+### Prerequisites
+
+You need Python 3.11 and pip installed on your machine. You can verify your Python version with:
+
+```bash
+python --version
+```
+
+You also need Pipenv. If you don't have Pipenv, you can install it with pip:
+
+```bash
+pip install pipenv
+```
+
+### Installing
+
+First, clone the repository to your local machine:
+
+```bash
+git clone git@github.com:iceproc1337/ask-gemini.git
+```
+
+Navigate to the project directory:
+
+```bash
+cd repository
+```
+
+Install the dependencies with Pipenv:
+
+```bash
+pipenv install --dev
+```
+
+This will create a new virtual environment and install the dependencies specified in the Pipfile.
+
+### Running the Application
+
+You can start the application with:
+
+```bash
+pipenv run start
+```
+
+This will start the Flask server on `http://localhost:5000`.
+
+### Running in Production
+
+To run the application in a production environment, use:
+
+```bash
+pipenv run production
+```
+
+### Running the Tests
+
+You can run the tests with:
+
+```bash
+pipenv run test
+```
+
+## Built With
+
+* [Flask](https://flask.palletsprojects.com/) - The web framework used
+* [pytest](https://docs.pytest.org/) - The testing framework used
+
+## Contributing
+Not ready for contributing yet.
+
+## License
+
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE.md](LICENSE.md) file for details
