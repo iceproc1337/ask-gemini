@@ -14,6 +14,10 @@
             font-family: Arial, sans-serif;
         }
 
+        p {
+            margin: 8px 0;
+        }
+
         .title {
             display: flex;
             height: 44px;
@@ -121,6 +125,10 @@
             border-color: transparent transparent #dcf8c6 transparent;
         }
 
+        .chat-bubble>pre {
+            margin: 0;
+        }
+
         .input-container {
             padding: 10px;
             background-color: #ddd;
@@ -133,7 +141,71 @@
             border-radius: 20px;
             box-sizing: border-box;
         }
+
+        code {
+            background-color: #f9f9f9;
+            border: 1px solid #ccc;
+            padding: 5px;
+            display: block;
+            position: relative;
+            min-width: 40px;
+        }
+
+        /* Copy button for code blocks */
+        pre>code:hover::after,
+        pre>code:active::after {
+            content: "\2398 ";
+            position: absolute;
+            top: -10px;
+            right: 4px;
+            padding: 2px 8px;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        /* Make "small" code elements display on the same line */
+        p>code,
+        li>code {
+            display: inline;
+            padding: 0 4px;
+        }
     </style>
+
+</head>
+
+<body>
+    <div class="title-wrapper">
+        <div class="title">
+            <div class="title-text">Ask Gemini</div>
+        </div>
+        <button class="menu-button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
+            </svg>
+            <div class="menu-items">
+                <div class="menu-item">Reset</div>
+            </div>
+        </button>
+    </div>
+    <div class="chat-container">
+        <div class="chat-bubble chat-bubble-left">Hello, how can I assist you?</div>
+        <div class="chat-bubble chat-bubble-left">Sure, I can help with that.</div>
+        <div class="chat-bubble chat-bubble-right">Hi, I would like to ask something</div>
+        <div class="chat-bubble chat-bubble-left"><code>aaaaaaaaa</code></div>
+    </div>
+    <div class="input-container">
+        <form id="chat-form">
+            <input class="input-field" type="text" placeholder="Ask something..." id="input-field">
+            <input type="submit" style="display: none;">
+        </form>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.0/marked.min.js"
+        integrity="sha384-+pBQSmYtEXC3hQ5VUaVCf29+iZoVJLtwOW9Wf/iFxETwDke401fmC3cesoWnEI3r"
+        crossorigin="anonymous"></script>
+
     <script>
         function domAddUserInput(text) {
             var chatContainer = document.querySelector('.chat-container');
@@ -142,6 +214,13 @@
             chatBubble.classList.add('chat-bubble-right');
             chatBubble.innerText = text;
             chatContainer.appendChild(chatBubble);
+
+            // Check if the user is already scrolled to the bottom
+            if (chatContainer.scrollTop + chatContainer.clientHeight >= chatContainer.scrollHeight) {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            } {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
         }
 
         function domAddGeminiOutput(text) {
@@ -149,8 +228,16 @@
             var chatBubble = document.createElement('div');
             chatBubble.classList.add('chat-bubble');
             chatBubble.classList.add('chat-bubble-left');
-            chatBubble.innerText = text;
+            
+            chatBubble.innerHTML = marked.parse(text);
             chatContainer.appendChild(chatBubble);
+
+            // Check if the user is already scrolled to the bottom
+            if (chatContainer.scrollTop + chatContainer.clientHeight >= chatContainer.scrollHeight) {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            } {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
         }
 
         function toggleMenu() {
@@ -158,11 +245,18 @@
             menuItems.classList.toggle('show');
         }
 
-
+        function onChatContainerClick(event) {
+            if (event.target.matches('code')) {
+                // Copy the text inside the code block to the clipboard
+                navigator.clipboard.writeText(event.target.textContent);
+            }
+        }
 
         function onDomContentLoaded() {
             var inputField = document.getElementById('input-field');
             var form = document.getElementById('chat-form');
+            var menuButton = document.querySelector('.menu-button');
+            var chatContainer = document.querySelector('.chat-container');
 
             form.addEventListener('submit', function (e) {
                 e.preventDefault(); // prevent form submission
@@ -188,38 +282,11 @@
             });
 
             // Show menu items when menu button is clicked
-            var menuButton = document.querySelector('.menu-button');
             menuButton.addEventListener('click', toggleMenu);
+
+            chatContainer.addEventListener('click', onChatContainerClick);
         }
 
         document.addEventListener('DOMContentLoaded', onDomContentLoaded);
     </script>
-
-</head>
-
-<body>
-    <div class="title-wrapper">
-        <div class="title">
-            <div class="title-text">Ask Gemini</div>
-        </div>
-        <button class="menu-button">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-                <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
-            </svg>
-            <div class="menu-items">
-                <div class="menu-item">Reset</div>
-            </div>
-        </button>
-    </div>
-    <div class="chat-container">
-        <div class="chat-bubble chat-bubble-left">Hello, how can I assist you?</div>
-        <div class="chat-bubble chat-bubble-left">Sure, I can help with that.</div>
-        <div class="chat-bubble chat-bubble-right">Hi, I would like to ask something</div>
-    </div>
-    <div class="input-container">
-        <form id="chat-form">
-            <input class="input-field" type="text" placeholder="Ask something..." id="input-field">
-            <input type="submit" style="display: none;">
-        </form>
-    </div>
 </body>
