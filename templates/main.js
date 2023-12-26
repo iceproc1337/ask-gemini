@@ -1,3 +1,5 @@
+API_ENDPOINT = "/api"
+
 function addChatBubble(text, isUser) {
     const chatContainer = document.querySelector('.chat-container');
     const chatBubble = document.createElement('div');
@@ -37,7 +39,7 @@ function handleFormSubmit(event) {
 
     // Send HTTP POST request to "/ask-gemini" with parameter "query" of value text.toString()
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", "/api/ask-gemini", true);
+    xhr.open("POST", API_ENDPOINT + "/ask-gemini", true);
     xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
     xhr.onreadystatechange = function () {
         if (xhr.readyState === 4 && xhr.status === 200) {
@@ -57,7 +59,7 @@ function resetChat() {
 
     // Send HTTP GET request to "/reset"
     const xhr = new XMLHttpRequest();
-    xhr.open("GET", "/api/reset", true);
+    xhr.open("GET", API_ENDPOINT + "/reset", true);
     xhr.onreadystatechange = function () {
         if (xhr.readyState === 4 && xhr.status === 200) {
             // Handle the response here
