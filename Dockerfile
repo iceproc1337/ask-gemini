@@ -10,4 +10,4 @@ WORKDIR /ask-gemini
 
 RUN pipenv install
 
-ENTRYPOINT ["pipenv", "run", "start"]
+ENTRYPOINT ["pipenv", "run", "production"]
