@@ -16,6 +16,6 @@ pytest = "*"
 python_version = "3.11"
 
 [scripts]
-start = "python src/app.py"
+start = "python app.py"
 production = "FLASK_ENV=production waitress-serve --port=8080 --call app:create_app"
 test = "pytest"

@@ -87,10 +87,8 @@ chat_sessions = {}
 
 # ---------------------------------------------Flask web server---------------------------------------------
 
-if os.getenv("FLASK_ENV") == "production":
-    app = Flask(__name__)
-else:
-    app = Flask(__name__, template_folder="../templates")
+app = Flask(__name__)
+if os.getenv("FLASK_ENV") != "production":
     print("-----------Development mode-------------")
     print("index.html, main.js and main.css will be served by Flask.")
     print("----------------------------------------")
@@ -138,7 +136,7 @@ def cleanup_chat_sessions():
             del chat_sessions[user_token]
 
 
-@app.route("/ask-gemini", methods=["POST"])
+@app.route("/api/ask-gemini", methods=["POST"])
 def process_user_message_and_return_reply():
     user_token = get_user_token()
 
@@ -156,7 +154,7 @@ def process_user_message_and_return_reply():
     return response
 
 
-@app.route("/reset", methods=["GET"])
+@app.route("/api/reset", methods=["GET"])
 def reset_user_token():
     user_token = get_user_token()
 
