@@ -1,5 +1,10 @@
 API_ENDPOINT = "/api"
 
+function scrollChatContainerToBottom() {
+    const chatContainer = document.querySelector('.chat-container');
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
 function addChatBubble(text, isUser) {
     const chatContainer = document.querySelector('.chat-container');
     const chatBubble = document.createElement('div');
@@ -10,9 +15,7 @@ function addChatBubble(text, isUser) {
 
     // Check if the user is already scrolled to the bottom
     if (chatContainer.scrollTop + chatContainer.clientHeight >= chatContainer.scrollHeight) {
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-    } else {
-        chatContainer.scrollTop = chatContainer.scrollHeight;
+        scrollChatContainerToBottom();
     }
 }
 
@@ -88,4 +91,6 @@ document.addEventListener('DOMContentLoaded', function () {
     chatContainer.addEventListener('click', copyCodeToClipboard);
     form.addEventListener('submit', handleFormSubmit);
     resetButton.addEventListener('click', resetChat);
+
+    scrollChatContainerToBottom();
 });
