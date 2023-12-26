@@ -80,7 +80,7 @@ p {
 }
 
 .chat-container {
-    flex: 1;
+    flex-grow: 1;
     padding: 10px;
     overflow-y: auto;
 }
@@ -125,6 +125,7 @@ p {
 }
 
 .input-container {
+    flex-shrink: 0;
     padding: 10px;
     background-color: #ddd;
 }
