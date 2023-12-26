@@ -1,12 +1,16 @@
 import datetime
 import os
 import signal
+import logging
 import google.generativeai as genai
+from threading import Lock
 from datetime import timedelta
 from flask import Flask, request, render_template, make_response
 from src.security.secure_uuid4 import secure_uuid4
 from src.security.mask_sensitive_data import mask_sensitive_data
 from src.ChatSession import ChatSession
+
+chat_sessions_lock = Lock()
 
 # -------------------------------------------------DOTENV------------------------------------------------------
 
@@ -64,8 +68,10 @@ text_model = genai.GenerativeModel(
 
 def send_message_and_get_reply(user_token, message):
     if user_token in chat_sessions:
+        # print(f"New chat session for user: {mask_sensitive_data(user_token)}")
         chat_session = chat_sessions[user_token]
     else:
+        # print(f"Found existing session for user: {mask_sensitive_data(user_token)}")
         chat_session = ChatSession(user_token)
         chat_sessions[user_token] = chat_session
 
@@ -78,7 +84,29 @@ def send_message_and_get_reply(user_token, message):
     else:
         if MAX_CHAT_COUNT > 0:
             # If history is enabled, stores "part" objects of the chat history of both user and the model.
-            chat_session.store_message(chat.history[-2], chat.history[-1])
+            content_from_user = chat.history[-2]
+            content_from_model = chat.history[-1]
+
+            # For debugging
+            # print(f"prompt_object_from_user: {response_content_from_user}")
+            # print(f"prompt_object_from_model: {response_content_from_model}")
+
+            # Calculate the length of the text in the message part of the Content object
+            text_length_sum_from_user = sum(
+                len(part.text) for part in content_from_user.parts
+            )
+            text_length_sum_from_model = sum(
+                len(part.text) for part in content_from_model.parts
+            )
+
+            # Produce a masked message of the same length for the message of the user and the model
+            masked_message_from_user = text_length_sum_from_user * "*"
+            masked_message_from_model = text_length_sum_from_model * "*"
+
+            print(
+                f"Storing chat history for user: {mask_sensitive_data(user_token)}, {masked_message_from_user}, {masked_message_from_model}"
+            )
+            chat_session.store_message(content_from_user, content_from_model)
             chat_session.prune_chat_log(MAX_CHAT_COUNT)
         return chat_response.text
 
@@ -93,6 +121,9 @@ if os.getenv("FLASK_ENV") != "production":
     print("-----------Development mode-------------")
     print("index.html, main.js and main.css will be served by Flask.")
     print("----------------------------------------")
+
+    # Enable Flask debugging
+    logging.basicConfig(level=logging.DEBUG)
 
     # Serve the index.html file, main.js and the main.css file if it is not production.
     # For development, we use the Flask web server to serve the static files.
@@ -119,6 +150,7 @@ def get_user_token():
     if not user_token:
         # No token for this user, generate a new one. Use a cryptographically secure random UUID4.
         user_token = str(secure_uuid4())
+        print(f"New user_token: {mask_sensitive_data(user_token)}")
     return user_token
 
 
@@ -133,43 +165,71 @@ def refresh_user_token(response, user_token):
     )
 
 
+last_cleanup_timestamp = datetime.datetime.now()
+
+
 @app.before_request
 def cleanup_chat_sessions():
+    global last_cleanup_timestamp
+
+    # Check if an hour has passed since the last cleanup
+    if datetime.datetime.now() - last_cleanup_timestamp < timedelta(hours=1):
+        return
+
     # Prune chat_sessions dictionary
-    for user_token, chat_session in list(chat_sessions.items()):
-        if chat_session.last_updated < datetime.datetime.now() - timedelta(days=7):
-            del chat_sessions[user_token]
+    print(f"Cleanup chat_sessions: {len(chat_sessions)} keys in store.")
+    with chat_sessions_lock:
+        for user_token, chat_session in list(chat_sessions.items()):
+            if chat_session.last_updated < datetime.datetime.now() - timedelta(days=7):
+                print(f"Removing user_token: {mask_sensitive_data(user_token)}")
+                del chat_sessions[user_token]
+
+    # Update the last cleanup timestamp
+    last_cleanup_timestamp = datetime.datetime.now()
+    print(f"Last cleanup finished at {last_cleanup_timestamp}")
 
 
 @app.route("/api/ask-gemini", methods=["POST"])
 def process_user_message_and_return_reply():
     user_token = get_user_token()
+    print(f"Access from user: {mask_sensitive_data(user_token)}")
 
     message = request.form.get("message")
     if message is None:
         return "No message provided"
 
-    # Process the query here
-    print(f"Received query: {message}")
+    # For debugging
+    # print(f"Received query: {mask_sensitive_data(message)}")
+
     reply = send_message_and_get_reply(user_token, message)
-    print(f"Reply from model: {reply}")
+
+    # For debugging
+    # print(f"Reply from model: {mask_sensitive_data(reply)}")
+
     response = make_response(reply)
 
+    # Refresh user_token on each api request
     refresh_user_token(response, user_token)
+
     return response
 
 
 @app.route("/api/reset", methods=["GET"])
 def reset_user_token():
     user_token = get_user_token()
+    history_reset_reply = (
+        f"🤖 History Reset for user: {mask_sensitive_data(user_token)}"
+    )
 
     if user_token in chat_sessions:
         del chat_sessions[user_token]
 
-    response = make_response(
-        "🤖 History Reset for user: " + mask_sensitive_data(user_token)
-    )
+    print(history_reset_reply)
+    response = make_response(history_reset_reply)
+
+    # Refresh user_token on each api request
     refresh_user_token(response, user_token)
+
     return response
 
 
