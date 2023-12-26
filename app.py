@@ -124,7 +124,7 @@ def get_user_token():
 def refresh_user_token(response, user_token):
     # Refresh user_token. Store it for 7 days
     response.set_cookie(
-        "user_token", user_token, max_age=timedelta(days=7).total_seconds()
+        "user_token", user_token, max_age=timedelta(days=7).total_seconds(), samesite='None', secure=True
     )
 
 
