@@ -1,5 +1,6 @@
 import datetime
 import os
+import signal
 import google.generativeai as genai
 from datetime import timedelta
 from flask import Flask, request, render_template, make_response
@@ -124,7 +125,11 @@ def get_user_token():
 def refresh_user_token(response, user_token):
     # Refresh user_token. Store it for 7 days
     response.set_cookie(
-        "user_token", user_token, max_age=timedelta(days=7).total_seconds(), samesite='None', secure=True
+        "user_token",
+        user_token,
+        max_age=timedelta(days=7).total_seconds(),
+        samesite="None",
+        secure=True,
     )
 
 
@@ -166,6 +171,18 @@ def reset_user_token():
     )
     refresh_user_token(response, user_token)
     return response
+
+
+# ------------------------------------Handle terminate signal and quit--------------------------------------
+def terminate(signal, frame):
+    print("----------------------------------------")
+    print("Signal SIGTERM received, terminating...")
+    print("----------------------------------------")
+    exit(0)
+
+
+# Trap and terminate bot on receiving SIGTERM to this python process
+signal.signal(signal.SIGTERM, terminate)
 
 
 if __name__ == "__main__":
