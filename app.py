@@ -124,9 +124,9 @@ def get_user_token():
 
 
 def refresh_user_token(response, user_token):
-    # Refresh user_token. Store it for 30 days
+    # Refresh user_token. Store it for 7 days
     response.set_cookie(
-        "user_token", user_token, max_age=timedelta(days=30).total_seconds()
+        "user_token", user_token, max_age=timedelta(days=7).total_seconds()
     )
 
 
@@ -134,7 +134,7 @@ def refresh_user_token(response, user_token):
 def cleanup_chat_sessions():
     # Prune chat_sessions dictionary
     for user_token, chat_session in list(chat_sessions.items()):
-        if chat_session.last_updated < datetime.datetime.now() - timedelta(days=30):
+        if chat_session.last_updated < datetime.datetime.now() - timedelta(days=7):
             del chat_sessions[user_token]
 
 
@@ -143,9 +143,14 @@ def process_user_message_and_return_reply():
     user_token = get_user_token()
 
     message = request.form.get("message")
+    if message is None:
+        return "No message provided"
+
     # Process the query here
     print(f"Received query: {message}")
-    response = make_response(send_message_and_get_reply(user_token, message))
+    reply = send_message_and_get_reply(user_token, message)
+    print(f"Reply from model: {reply}")
+    response = make_response(reply)
 
     refresh_user_token(response, user_token)
     return response

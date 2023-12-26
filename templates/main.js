@@ -33,24 +33,26 @@ function handleFormSubmit(event) {
 
     const inputField = document.getElementById('input-field');
     const text = inputField.value;
-    console.log(text);
 
-    addChatBubble(text.toString(), true);
+    // Only send request if the user entered something
+    if (text.length > 0) {
+        addChatBubble(text.toString(), true);
 
-    // Send HTTP POST request to "/ask-gemini" with parameter "query" of value text.toString()
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", API_ENDPOINT + "/ask-gemini", true);
-    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-    xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4 && xhr.status === 200) {
-            // Handle the response here
-            console.log(xhr.responseText);
-            addChatBubble(xhr.responseText, false);
-        }
-    };
-    xhr.send("message=" + encodeURIComponent(text.toString()));
+        // Send HTTP POST request to "/ask-gemini" with parameter "query" of value text.toString()
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", API_ENDPOINT + "/ask-gemini", true);
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                // Handle the response here
+                console.log(xhr.responseText);
+                addChatBubble(xhr.responseText, false);
+            }
+        };
+        xhr.send("message=" + encodeURIComponent(text.toString()));
 
-    inputField.value = ''; // clear the input field
+        inputField.value = ''; // clear the input field
+    }
 }
 
 function resetChat() {
