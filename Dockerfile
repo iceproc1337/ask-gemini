@@ -25,4 +25,4 @@ COPY ./ /app
 EXPOSE 8080
 
 # Define our entrypoint command
-ENTRYPOINT ["pipenv", "run", "production"]
+ENTRYPOINT ["pipenv", "run", "start"]
