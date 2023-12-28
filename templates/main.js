@@ -11,10 +11,14 @@ function addChatBubble(text, isUser) {
     chatBubble.classList.add('chat-bubble');
     chatBubble.classList.add(isUser ? 'chat-bubble-right' : 'chat-bubble-left');
     chatBubble.innerHTML = isUser ? text : marked.parse(text);
+    
+    // Check if the user is already scrolled to the bottom
+    var chatContainerIsAtBottom = chatContainer.scrollTop + chatContainer.clientHeight >= chatContainer.scrollHeight;
+
     chatContainer.appendChild(chatBubble);
 
-    // Check if the user is already scrolled to the bottom
-    if (chatContainer.scrollTop + chatContainer.clientHeight >= chatContainer.scrollHeight) {
+    // Scroll to bottom if the user was previously already scrolled to the bottom before the new content was added
+    if (chatContainerIsAtBottom) {
         scrollChatContainerToBottom();
     }
 }
