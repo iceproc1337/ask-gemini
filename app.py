@@ -1,7 +1,7 @@
 import datetime
 import os
-import signal
 import logging
+from logging.handlers import TimedRotatingFileHandler
 import google.generativeai as genai
 from threading import Lock
 from datetime import timedelta
@@ -16,13 +16,13 @@ chat_sessions_lock = Lock()
 
 GOOGLE_AI_API_KEY = os.getenv("GOOGLE_AI_API_KEY")
 MAX_CHAT_COUNT = os.getenv("MAX_CHAT_COUNT")
+LOG_PATH = os.getenv("LOG_PATH")
+LOG_ROTATE_BACKUP_COUNT = os.getenv("LOG_ROTATE_BACKUP_COUNT")
 
 assert GOOGLE_AI_API_KEY, "GOOGLE_AI_API_KEY is not set."
 assert MAX_CHAT_COUNT, "MAX_CHAT_COUNT is not set."
 
-assert (
-    MAX_CHAT_COUNT.isdigit()
-), "MAX_CHAT_COUNT must be a string which contains only characters of 0 - 9."
+assert MAX_CHAT_COUNT.isdigit(), "MAX_CHAT_COUNT must be a string of digits."
 
 assert (
     int(MAX_CHAT_COUNT) % 2 == 0
@@ -30,10 +30,49 @@ assert (
 
 MAX_CHAT_COUNT = int(MAX_CHAT_COUNT)
 
+assert (
+    LOG_ROTATE_BACKUP_COUNT.isdigit()
+), "LOG_ROTATE_BACKUP_COUNT must be a string of digits."
+
+LOG_ROTATE_BACKUP_COUNT = int(LOG_ROTATE_BACKUP_COUNT)
+
+# ---------------------------------------------Summary-------------------------------------------------
+
 print("------------------ENV-------------------")
 print(f"GOOGLE_AI_API_KEY: {mask_sensitive_data(GOOGLE_AI_API_KEY)}")
 print(f"MAX_CHAT_COUNT: {MAX_CHAT_COUNT}")
-print("----------------------------------------")
+print(f"LOG_PATH: {LOG_PATH}")
+print(f"LOG_ROTATE_BACKUP_COUNT: {LOG_ROTATE_BACKUP_COUNT}")
+
+# ---------------------------------------------Logging-------------------------------------------------
+
+logger = logging.getLogger(__name__)
+
+
+logger.setLevel(logging.DEBUG)
+
+formatter = logging.Formatter(
+    "[%(asctime)s] %(levelname)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+)
+
+stdout_handler = TimedRotatingFileHandler(
+    os.path.join(LOG_PATH, "webapp-debug.log"),
+    when="midnight",
+    backupCount=LOG_ROTATE_BACKUP_COUNT,
+)
+stdout_handler.setLevel(logging.DEBUG)
+stdout_handler.setFormatter(formatter)
+
+stderr_handler = TimedRotatingFileHandler(
+    os.path.join(LOG_PATH, "webapp-error.log"),
+    when="midnight",
+    backupCount=LOG_ROTATE_BACKUP_COUNT,
+)
+stderr_handler.setLevel(logging.ERROR)
+stderr_handler.setFormatter(formatter)
+
+logger.addHandler(stdout_handler)
+logger.addHandler(stderr_handler)
 
 # ---------------------------------------------AI Configuration-------------------------------------------------
 
@@ -68,10 +107,10 @@ text_model = genai.GenerativeModel(
 
 def send_message_and_get_reply(user_token, message):
     if user_token in chat_sessions:
-        # print(f"New chat session for user: {mask_sensitive_data(user_token)}")
+        # logger.debug(f"New chat session for user: {mask_sensitive_data(user_token)}")
         chat_session = chat_sessions[user_token]
     else:
-        # print(f"Found existing session for user: {mask_sensitive_data(user_token)}")
+        # logger.debug(f"Found existing session for user: {mask_sensitive_data(user_token)}")
         chat_session = ChatSession(user_token)
         chat_sessions[user_token] = chat_session
 
@@ -88,8 +127,8 @@ def send_message_and_get_reply(user_token, message):
             content_from_model = chat.history[-1]
 
             # For debugging
-            # print(f"prompt_object_from_user: {response_content_from_user}")
-            # print(f"prompt_object_from_model: {response_content_from_model}")
+            # logger.debug(f"prompt_object_from_user: {response_content_from_user}")
+            # logger.debug(f"prompt_object_from_model: {response_content_from_model}")
 
             # Calculate the length of the text in the message part of the Content object
             text_length_sum_from_user = sum(
@@ -103,7 +142,7 @@ def send_message_and_get_reply(user_token, message):
             masked_message_from_user = text_length_sum_from_user * "*"
             masked_message_from_model = text_length_sum_from_model * "*"
 
-            print(
+            logger.debug(
                 f"Storing chat history for user: {mask_sensitive_data(user_token)}, {masked_message_from_user}, {masked_message_from_model}"
             )
             chat_session.store_message(content_from_user, content_from_model)
@@ -118,9 +157,8 @@ chat_sessions = {}
 
 app = Flask(__name__)
 if os.getenv("FLASK_ENV") != "production":
-    print("-----------Development mode-------------")
-    print("index.html, main.js and main.css will be served by Flask.")
-    print("----------------------------------------")
+    logger.info("-----------Development mode-------------")
+    logger.info("index.html, main.js and main.css will be served by Flask.")
 
     # Enable Flask debugging
     logging.basicConfig(level=logging.DEBUG)
@@ -150,7 +188,7 @@ def get_user_token():
     if not user_token:
         # No token for this user, generate a new one. Use a cryptographically secure random UUID4.
         user_token = str(secure_uuid4())
-        print(f"New user_token: {mask_sensitive_data(user_token)}")
+        logger.debug(f"New user_token: {mask_sensitive_data(user_token)}")
     return user_token
 
 
@@ -177,34 +215,38 @@ def cleanup_chat_sessions():
         return
 
     # Prune chat_sessions dictionary
-    print(f"Cleanup chat_sessions: {len(chat_sessions)} keys in store.")
+    cleanup_count = 0
+    logger.debug(f"Cleanup chat_sessions: {len(chat_sessions)} keys in store.")
     with chat_sessions_lock:
         for user_token, chat_session in list(chat_sessions.items()):
             if chat_session.last_updated < datetime.datetime.now() - timedelta(days=7):
-                print(f"Removing user_token: {mask_sensitive_data(user_token)}")
+                logger.debug(f"Removing user_token: {mask_sensitive_data(user_token)}")
                 del chat_sessions[user_token]
+                cleanup_count += 1
 
     # Update the last cleanup timestamp
     last_cleanup_timestamp = datetime.datetime.now()
-    print(f"Last cleanup finished at {last_cleanup_timestamp}")
+    logger.info(
+        f"Last cleanup finished at {last_cleanup_timestamp}, {cleanup_count} keys removed."
+    )
 
 
 @app.route("/api/ask-gemini", methods=["POST"])
 def process_user_message_and_return_reply():
     user_token = get_user_token()
-    print(f"Access from user: {mask_sensitive_data(user_token)}")
+    logger.debug(f"Access from user: {mask_sensitive_data(user_token)}")
 
     message = request.form.get("message")
     if message is None:
         return "No message provided"
 
     # For debugging
-    # print(f"Received query: {mask_sensitive_data(message)}")
+    # logger.debug(f"Received query: {mask_sensitive_data(message)}")
 
     reply = send_message_and_get_reply(user_token, message)
 
     # For debugging
-    # print(f"Reply from model: {mask_sensitive_data(reply)}")
+    # logger.debug(f"Reply from model: {mask_sensitive_data(reply)}")
 
     response = make_response(reply)
 
@@ -224,7 +266,9 @@ def reset_user_token():
     if user_token in chat_sessions:
         del chat_sessions[user_token]
 
-    print(history_reset_reply)
+    del chat_sessions[456]
+
+    logger.debug(history_reset_reply)
     response = make_response(history_reset_reply)
 
     # Refresh user_token on each api request
@@ -233,17 +277,8 @@ def reset_user_token():
     return response
 
 
-# ------------------------------------Handle terminate signal and quit--------------------------------------
-def terminate(signal, frame):
-    print("----------------------------------------")
-    print("Signal SIGTERM received, terminating...")
-    print("----------------------------------------")
-    exit(0)
 
-
-# Trap and terminate bot on receiving SIGTERM to this python process
-signal.signal(signal.SIGTERM, terminate)
-
+# ---------------------------------------------Main-------------------------------------------------
 
 if __name__ == "__main__":
     app.run()
