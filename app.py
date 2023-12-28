@@ -46,19 +46,21 @@ print(f"LOG_ROTATE_BACKUP_COUNT: {LOG_ROTATE_BACKUP_COUNT}")
 
 # ---------------------------------------------Logging-------------------------------------------------
 
-logger = logging.getLogger(__name__)
+# This is the logger used by waitress
+logger = logging.getLogger("waitress")
 
 
 logger.setLevel(logging.DEBUG)
 
 formatter = logging.Formatter(
-    "[%(asctime)s] %(levelname)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+    u"[%(asctime)s] %(levelname)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
 )
 
 stdout_handler = TimedRotatingFileHandler(
     os.path.join(LOG_PATH, "webapp-debug.log"),
     when="midnight",
     backupCount=LOG_ROTATE_BACKUP_COUNT,
+    encoding="utf-8"
 )
 stdout_handler.setLevel(logging.DEBUG)
 stdout_handler.setFormatter(formatter)
@@ -67,12 +69,19 @@ stderr_handler = TimedRotatingFileHandler(
     os.path.join(LOG_PATH, "webapp-error.log"),
     when="midnight",
     backupCount=LOG_ROTATE_BACKUP_COUNT,
+    encoding="utf-8"
 )
 stderr_handler.setLevel(logging.ERROR)
 stderr_handler.setFormatter(formatter)
 
+# Write application log to stdout and stderr
 logger.addHandler(stdout_handler)
 logger.addHandler(stderr_handler)
+
+# Also log traffic logs to stdout and stderr
+trans_logger = logging.getLogger("wsgi")
+trans_logger.addHandler(stdout_handler)
+trans_logger.addHandler(stderr_handler)
 
 # ---------------------------------------------AI Configuration-------------------------------------------------
 
@@ -158,7 +167,7 @@ chat_sessions = {}
 app = Flask(__name__)
 if os.getenv("FLASK_ENV") != "production":
     logger.info("-----------Development mode-------------")
-    logger.info("index.html, main.js and main.css will be served by Flask.")
+    logger.info("index.html, main.js and main.css will be served.")
 
     # Enable Flask debugging
     logging.basicConfig(level=logging.DEBUG)
