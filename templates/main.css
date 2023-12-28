@@ -30,6 +30,14 @@ p {
     flex-grow: 1;
 }
 
+/* Style for mobile devices */
+@media screen and (max-width: 768px) {
+    .title {
+        height: 56dp;
+        padding: 0 56dp;
+    }
+}
+
 .title-text {
     text-align: center;
     white-space: nowrap;
