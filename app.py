@@ -266,8 +266,6 @@ def reset_user_token():
     if user_token in chat_sessions:
         del chat_sessions[user_token]
 
-    del chat_sessions[456]
-
     logger.debug(history_reset_reply)
     response = make_response(history_reset_reply)
 
