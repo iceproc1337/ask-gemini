@@ -9,6 +9,7 @@ google-generativeai = "0.3.2"
 python-dotenv = "1.0.0"
 waitress = "2.1.2"
 paste = "3.7.1"
+Pillow = "10.1.0"
 
 [dev-packages]
 pytest = "*"
@@ -19,5 +20,6 @@ python_version = "3.11"
 [scripts]
 start = "bash -c 'cd ./client && npm run build && cd .. && python server.py'"
 production = "python server.py"
+mobile = "bash -c 'cd ./client && VITE_API_ENDPOINT=https://ask-gemini-api.stellach.com/api npm run build'"
 build = "python build-dist.py"
 test = "pytest"

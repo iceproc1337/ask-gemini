@@ -11,6 +11,7 @@ from src.security.mask_sensitive_data import mask_sensitive_data
 from src.ChatSession import ChatSession
 from werkzeug.exceptions import HTTPException
 from google.generativeai.types import StopCandidateException
+from PIL import Image
 
 chat_sessions_lock = Lock()
 
@@ -23,8 +24,12 @@ LOG_ROTATE_BACKUP_COUNT = os.getenv("LOG_ROTATE_BACKUP_COUNT")
 
 HARM_CATEGORY_HARASSMENT_THRESHOLD = os.getenv("HARM_CATEGORY_HARASSMENT_THRESHOLD")
 HARM_CATEGORY_HATE_SPEECH_THRESHOLD = os.getenv("HARM_CATEGORY_HATE_SPEECH_THRESHOLD")
-HARM_CATEGORY_SEXUALLY_EXPLICIT_THRESHOLD = os.getenv("HARM_CATEGORY_SEXUALLY_EXPLICIT_THRESHOLD")
-HARM_CATEGORY_DANGEROUS_CONTENT_THRESHOLD = os.getenv("HARM_CATEGORY_DANGEROUS_CONTENT_THRESHOLD")
+HARM_CATEGORY_SEXUALLY_EXPLICIT_THRESHOLD = os.getenv(
+    "HARM_CATEGORY_SEXUALLY_EXPLICIT_THRESHOLD"
+)
+HARM_CATEGORY_DANGEROUS_CONTENT_THRESHOLD = os.getenv(
+    "HARM_CATEGORY_DANGEROUS_CONTENT_THRESHOLD"
+)
 
 
 assert GOOGLE_AI_API_KEY, "GOOGLE_AI_API_KEY is not set."
@@ -54,8 +59,12 @@ print(f"LOG_ROTATE_BACKUP_COUNT: {LOG_ROTATE_BACKUP_COUNT}")
 
 print(f"HARM_CATEGORY_HARASSMENT_THRESHOLD: {HARM_CATEGORY_HARASSMENT_THRESHOLD}")
 print(f"HARM_CATEGORY_HATE_SPEECH_THRESHOLD: {HARM_CATEGORY_HATE_SPEECH_THRESHOLD}")
-print(f"HARM_CATEGORY_SEXUALLY_EXPLICIT_THRESHOLD: {HARM_CATEGORY_SEXUALLY_EXPLICIT_THRESHOLD}")
-print(f"HARM_CATEGORY_DANGEROUS_CONTENT_THRESHOLD: {HARM_CATEGORY_DANGEROUS_CONTENT_THRESHOLD}")
+print(
+    f"HARM_CATEGORY_SEXUALLY_EXPLICIT_THRESHOLD: {HARM_CATEGORY_SEXUALLY_EXPLICIT_THRESHOLD}"
+)
+print(
+    f"HARM_CATEGORY_DANGEROUS_CONTENT_THRESHOLD: {HARM_CATEGORY_DANGEROUS_CONTENT_THRESHOLD}"
+)
 
 
 # ---------------------------------------------Logging-------------------------------------------------
@@ -107,9 +116,21 @@ text_generation_config = {
     "top_k": 1,
     "max_output_tokens": 512,
 }
+image_generation_config = {
+    "temperature": 0.4,
+    "top_p": 1,
+    "top_k": 32,
+    "max_output_tokens": 512,
+}
 safety_settings = [
-    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": HARM_CATEGORY_HARASSMENT_THRESHOLD},
-    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": HARM_CATEGORY_HATE_SPEECH_THRESHOLD},
+    {
+        "category": "HARM_CATEGORY_HARASSMENT",
+        "threshold": HARM_CATEGORY_HARASSMENT_THRESHOLD,
+    },
+    {
+        "category": "HARM_CATEGORY_HATE_SPEECH",
+        "threshold": HARM_CATEGORY_HATE_SPEECH_THRESHOLD,
+    },
     {
         "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
         "threshold": HARM_CATEGORY_SEXUALLY_EXPLICIT_THRESHOLD,
@@ -126,10 +147,17 @@ text_model = genai.GenerativeModel(
     safety_settings=safety_settings,
 )
 
+image_model = genai.GenerativeModel(
+    model_name="gemini-pro-vision",
+    generation_config=image_generation_config,
+    safety_settings=safety_settings,
+)
+
+
 # ---------------------------------------------AI Generation History-------------------------------------------------
 
 
-def send_message_and_get_reply(user_token, message):
+def send_message_and_get_reply(user_token, message, image=None):
     if user_token in chat_sessions:
         # logger.debug(f"New chat session for user: {mask_sensitive_data(user_token)}")
         chat_session = chat_sessions[user_token]
@@ -139,10 +167,18 @@ def send_message_and_get_reply(user_token, message):
         chat_sessions[user_token] = chat_session
 
     chat_log = chat_session.get_chat_log()
-    chat = text_model.start_chat(history=chat_log)
+
+    if image is None:
+        chat = text_model.start_chat(history=chat_log)
+    else:
+        chat = image_model.start_chat(history=[]) # 400 Multiturn chat is not enabled for models/gemini-pro-vision
 
     try:
-        chat_response = chat.send_message(message)
+        if image is None:
+            chat_response = chat.send_message(message)
+        else:
+            image_pil = Image.open(image.stream)
+            chat_response = chat.send_message([message, image_pil])
     except StopCandidateException as e:
         # Try to return the error message from the API
         try:
@@ -169,7 +205,8 @@ def send_message_and_get_reply(user_token, message):
         logger.error(e)
         return str(e)
 
-    if MAX_CHAT_COUNT > 0:
+    # 400 Multiturn chat is not enabled for models/gemini-pro-vision
+    if image is None and MAX_CHAT_COUNT > 0:
         # If history is enabled, stores "part" objects of the chat history of both user and the model.
         content_from_user = chat.history[-2]
         content_from_model = chat.history[-1]
@@ -278,10 +315,12 @@ def process_user_message_and_return_reply():
     if message is None:
         return "No message provided"
 
+    image = request.files.get("image")  # Get the image from request.files
+
     # For debugging
     # logger.debug(f"Received query: {mask_sensitive_data(message)}")
 
-    reply = send_message_and_get_reply(user_token, message)
+    reply = send_message_and_get_reply(user_token, message, image)
 
     # For debugging
     # logger.debug(f"Reply from model: {mask_sensitive_data(reply)}")

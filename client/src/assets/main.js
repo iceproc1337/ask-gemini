@@ -45,8 +45,18 @@ export function copyCodeToClipboard(event) {
 export function handleFormSubmit(event, isXhrLoading) {
     event.preventDefault(); // prevent form submission
 
+    if (isXhrLoading.value) {
+        // Prevent multiple requests from being sent at the same time
+        return;
+    }
+
+    isXhrLoading.value = true;
+
     const inputField = document.getElementById('input-field');
     const text = inputField.value;
+
+    const imageInputField = document.getElementById('file-upload');
+    const image = imageInputField.files[0];
 
     var token = getTokenFromCookie();
     if (!token) {
@@ -57,40 +67,36 @@ export function handleFormSubmit(event, isXhrLoading) {
     // Only send request if the user entered something
     if (text.length > 0) {
         addChatBubble(text.toString(), true);
-
         // Send HTTP POST request to "/ask-gemini" with parameter "query" of value text.toString()
-        const xhr = new XMLHttpRequest();
-        xhr.open("POST", API_ENDPOINT + "/ask-gemini", true);
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState === XMLHttpRequest.DONE) {
-                // Check if the request is finished
-                if (xhr.status === 200) {
+        const formData = new FormData();
+        formData.append("message", text.toString());
+        formData.append("token", token);
+        formData.append("image", image);
+
+        fetch(API_ENDPOINT + "/ask-gemini", {
+            method: "POST",
+            body: formData
+        })
+            .then(response => {
+                if (response.ok) {
                     // Handle the successful response here
-                    console.log(xhr.responseText);
-
-                    addChatBubble(xhr.responseText, false);
+                    return response.text();
                 } else {
-                    try {
-                        // Handle the error response here
-                        console.error("XHR request failed with status:", xhr.status);
-    
-                        if ( xhr.responseText ) {
-                            addChatBubble(xhr.responseText, false);
-                        } else {
-                            addChatBubble("❌" + xhr.status + " " + xhr.statusText, false);
-                        }
-                    } catch (e) {
-                        console.error(xhr)
-                        console.error(e)
-                    }
+                    // Handle the error response here
+                    throw new Error("XHR request failed with status: " + response.status);
                 }
-
+            })
+            .then(responseText => {
+                console.log(responseText);
+                addChatBubble(responseText, false);
+            })
+            .catch(error => {
+                console.error(error);
+                addChatBubble("❌" + error.message, false);
+            })
+            .finally(() => {
                 isXhrLoading.value = false;
-            }
-        };
-        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-        isXhrLoading.value = true;
-        xhr.send("message=" + encodeURIComponent(text.toString()) + "&token=" + encodeURIComponent(token));
+            });
 
         inputField.value = ''; // clear the input field
     }
@@ -107,41 +113,41 @@ export function resetChat(event, isXhrLoading) {
     }
 
     // Send HTTP POST request to "/reset"
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", API_ENDPOINT + "/reset", true);
-    xhr.onreadystatechange = function () {
-        if (xhr.readyState === XMLHttpRequest.DONE) {
-            // Check if the request is finished
-            if (xhr.status === 200) {
-                // Handle the successful response here
-                console.log(xhr.responseText);
+    const formData = new FormData();
+    formData.append('token', token);
 
-                // Reset chat container content
-                chatContainer.innerHTML = '';
-
-                addChatBubble(xhr.responseText, false);
-            } else {
-                try {
-                    // Handle the error response here
-                    console.error("XHR request failed with status:", xhr.status);
-
-                    if ( xhr.responseText ) {
-                        addChatBubble(xhr.responseText, false);
-                    } else {
-                        addChatBubble("❌" + xhr.status + " " + xhr.statusText, false);
-                    }
-                } catch (e) {
-                    console.error(xhr)
-                    console.error(e)
-                }
-            }
-
-            isXhrLoading.value = false;
-        }
-    };
-    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
     isXhrLoading.value = true;
-    xhr.send("token=" + encodeURIComponent(token));
+    fetch(API_ENDPOINT + "/reset", {
+        method: 'POST',
+        body: formData
+    })
+        .then(response => {
+            if (response.ok) {
+                return response.text();
+            } else {
+                throw new Error("XHR request failed with status: " + response.status);
+            }
+        })
+        .then(responseText => {
+            console.log(responseText);
+
+            // Reset chat container content
+            chatContainer.innerHTML = '';
+
+            addChatBubble(responseText, false);
+        })
+        .catch(error => {
+            console.error(error);
+
+            if (error.message) {
+                addChatBubble(error.message, false);
+            } else {
+                addChatBubble("❌" + error, false);
+            }
+        })
+        .finally(() => {
+            isXhrLoading.value = false;
+        });
 }
 
 export function generateRandomHexString(length) {

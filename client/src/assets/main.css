@@ -84,6 +84,7 @@ p {
   position: absolute;
   top: 100%;
   right: 0;
+  min-width: 80px;
   background-color: #fff;
   padding: 10px;
   border-radius: 5px;
@@ -179,6 +180,44 @@ p {
   border-radius: 20px;
   box-sizing: border-box;
 }
+
+#chat-form {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.custom-file-upload {
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  margin-left: 10px;
+  background-color: #fff;
+  border: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.send-button {
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  margin-left: 10px;
+  background-color: #fff;
+  border: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.input-button:hover {
+  background-color: #ccc;
+}
+
 
 code {
   background-color: #f9f9f9;

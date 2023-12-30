@@ -3,6 +3,24 @@ import { onBeforeUnmount, onMounted, ref } from "vue";
 import { scrollChatContainerToBottom, toggleMenu, copyCodeToClipboard, handleFormSubmit, resetChat } from '@/assets/main.js';
 
 const isXhrLoading = ref(false);
+const isDialogOpen = ref(false);
+const uploadedImage = ref(null);
+const uploadedImageUrl = ref("");
+
+const handleImageUpload = (e) => {
+  // Handle image upload logic here
+  uploadedImage.value = e.target.files[0];
+  uploadedImageUrl.value = URL.createObjectURL(uploadedImage.value);
+  isDialogOpen.value = true;
+};
+
+const closeDialog = () => {
+  const fileUpload = document.getElementById('file-upload');
+  isDialogOpen.value = false;
+  uploadedImage.value = null;
+  uploadedImageUrl.value = "";
+  fileUpload.value = null;
+};
 
 onMounted(() => {
   const form = document.getElementById('chat-form');
@@ -83,7 +101,84 @@ onBeforeUnmount(() => {
   <div class="input-container">
     <form id="chat-form">
       <input class="input-field" type="text" placeholder="Ask something..." id="input-field">
-      <input type="submit" style="display: none;">
+      <button type="submit" class="input-button send-button">
+        <img src="@/assets/send_black_24dp.svg" alt="Send" class="send-icon" />
+      </button>
+      <label for="file-upload" class="input-button custom-file-upload">
+        <img src="@/assets/picture_24dp.svg">
+      </label>
+      <input id="file-upload" type="file" accept="image/*" @change="handleImageUpload" style="display: none;" />
     </form>
   </div>
+
+  <!-- Dialog Box Overlay -->
+  <div class="dialog-box" v-if="isDialogOpen">
+    <div class="dialog-header">
+      <div class="dialog-title">Attach image</div>
+      <button class="dialog-close" @click="closeDialog">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+          <path
+            d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z" />
+        </svg>
+      </button>
+    </div>
+    <div class="dialog-content">
+      <!-- Image preview goes here -->
+      <img class="dialog-image-preview" v-if="uploadedImageUrl" :src="uploadedImageUrl" alt="Image Preview">
+    </div>
+  </div>
 </template>
+
+<style scoped>
+.dialog-box {
+  background-color: white;
+  width: 20%;
+  max-height: 60%;
+  min-width: 200px;
+  max-width: 400px;
+  padding: 20px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  position: absolute;
+  bottom: 60px;
+  right: 18px;
+  display: flex;
+  flex-direction: column;
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+
+.dialog-title {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.dialog-image-preview {
+  max-width: 100%;
+  max-height: 100%;
+
+  object-fit: contain;
+}
+
+.dialog-close {
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.dialog-content {
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: center;
+  max-height: 100%;
+  flex-grow: 1;
+  flex-shrink: 1;
+  overflow-y: hidden;
+}
+</style>
