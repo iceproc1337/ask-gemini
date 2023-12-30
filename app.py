@@ -164,7 +164,7 @@ chat_sessions = {}
 
 # ---------------------------------------------Flask web server---------------------------------------------
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="dist")
 if os.getenv("FLASK_ENV") != "production":
     logger.info("-----------Development mode-------------")
     logger.info("index.html, main.js and main.css will be served.")

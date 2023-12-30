@@ -8,6 +8,7 @@ __pycache__/
 
 # Logs
 *.log
+logs/
 
 # Compiled Python files
 *.pyc
@@ -17,3 +18,7 @@ __pycache__/
 # Miscellaneous
 *.swp
 .DS_Store
+dist/index.html
+
+# Build artifact
+dist/

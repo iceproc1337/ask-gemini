@@ -12,10 +12,13 @@ paste = "3.7.1"
 
 [dev-packages]
 pytest = "*"
+jinja2 = "*"
 
 [requires]
 python_version = "3.11"
 
 [scripts]
-start = "python server.py"
+start = "bash -c 'python build-dist.py && python server.py'"
+production = "python server.py"
+build = "python build-dist.py"
 test = "pytest"

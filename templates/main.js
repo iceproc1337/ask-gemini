@@ -1,4 +1,4 @@
-API_ENDPOINT = "/api"
+const API_ENDPOINT = "{{ api_endpoint }}";
 
 function scrollChatContainerToBottom() {
     const chatContainer = document.querySelector('.chat-container');
