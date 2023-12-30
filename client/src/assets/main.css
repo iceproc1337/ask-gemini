@@ -69,6 +69,10 @@ p {
   height: 44px;
 }
 
+.menu-button:hover {
+  background-color: #0059B2;
+}
+
 .menu-button svg {
   fill: #000;
   width: 24px;
@@ -112,7 +116,7 @@ p {
   background-image: url("/loading-16.gif");
   background-repeat: no-repeat;
   background-position: center;
-  
+
   /* chat-bubble styles */
   padding: 10px;
   margin-bottom: 10px;
