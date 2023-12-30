@@ -3,14 +3,16 @@ body {
   line-height: 1.25;
   margin: 0;
   padding: 0;
+  height: 100vh; /* old browsers */
+  height: 100dvh; /* new browsers */
 }
 
 div#app {
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
   height: 100vh; /* old browsers */
   height: 100dvh; /* new browsers */
-  box-sizing: border-box;
 }
 
 p {
@@ -93,6 +95,7 @@ p {
 
 .chat-container {
   flex-grow: 1;
+  flex-shrink: 1;
   padding: 10px;
   overflow-y: auto;
 }
