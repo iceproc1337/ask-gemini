@@ -5,7 +5,7 @@ from logging.handlers import TimedRotatingFileHandler
 import google.generativeai as genai
 from threading import Lock
 from datetime import timedelta
-from flask import Flask, request, render_template, make_response
+from flask import Flask, request, render_template, make_response, send_from_directory
 from src.security.secure_uuid4 import secure_uuid4
 from src.security.mask_sensitive_data import mask_sensitive_data
 from src.ChatSession import ChatSession
@@ -53,14 +53,14 @@ logger = logging.getLogger("waitress")
 logger.setLevel(logging.DEBUG)
 
 formatter = logging.Formatter(
-    u"[%(asctime)s] %(levelname)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+    "[%(asctime)s] %(levelname)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
 )
 
 stdout_handler = TimedRotatingFileHandler(
     os.path.join(LOG_PATH, "webapp-debug.log"),
     when="midnight",
     backupCount=LOG_ROTATE_BACKUP_COUNT,
-    encoding="utf-8"
+    encoding="utf-8",
 )
 stdout_handler.setLevel(logging.DEBUG)
 stdout_handler.setFormatter(formatter)
@@ -69,7 +69,7 @@ stderr_handler = TimedRotatingFileHandler(
     os.path.join(LOG_PATH, "webapp-error.log"),
     when="midnight",
     backupCount=LOG_ROTATE_BACKUP_COUNT,
-    encoding="utf-8"
+    encoding="utf-8",
 )
 stderr_handler.setLevel(logging.ERROR)
 stderr_handler.setFormatter(formatter)
@@ -172,24 +172,14 @@ if os.getenv("FLASK_ENV") != "production":
     # Enable Flask debugging
     logging.basicConfig(level=logging.DEBUG)
 
-    # Serve the index.html file, main.js and the main.css file if it is not production.
-    # For development, we use the Flask web server to serve the static files.
-    # For production, we use a CDN to serve the static files.
+    # Serve static assets from the "client/dist" folder for all routes "/"
     @app.route("/", methods=["GET"])
-    def serve_index_html():
-        return render_template("index.html")
+    def serve_static_assets():
+        return send_from_directory("client/dist", "index.html")
 
-    @app.route("/main.js", methods=["GET"])
-    def serve_main_js():
-        response = make_response(render_template("main.js"))
-        response.headers["Content-Type"] = "application/javascript"
-        return response
-
-    @app.route("/main.css", methods=["GET"])
-    def serve_main_css():
-        response = make_response(render_template("main.css"))
-        response.headers["Content-Type"] = "text/css"
-        return response
+    @app.route("/<path:path>", methods=["GET"])
+    def serve_static_files(path):
+        return send_from_directory("client/dist", path)
 
 
 def get_user_token():
