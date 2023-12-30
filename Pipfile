@@ -12,13 +12,12 @@ paste = "3.7.1"
 
 [dev-packages]
 pytest = "*"
-Jinja2 = "3.1.2"
 
 [requires]
 python_version = "3.11"
 
 [scripts]
-start = "bash -c 'python build-dist.py && python server.py'"
+start = "bash -c 'cd ./client && npm run build && cd .. && python server.py'"
 production = "python server.py"
 build = "python build-dist.py"
 test = "pytest"

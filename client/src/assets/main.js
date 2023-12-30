@@ -1,4 +1,4 @@
-const API_ENDPOINT = "{{ api_endpoint }}";
+const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT;
 
 function scrollChatContainerToBottom() {
     const chatContainer = document.querySelector('.chat-container');
