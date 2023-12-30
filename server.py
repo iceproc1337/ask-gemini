@@ -1,11 +1,8 @@
-from logging.handlers import TimedRotatingFileHandler
 import os
 import signal
-import logging
 from app import create_app
 from paste.translogger import TransLogger
 
-# from gevent import pywsgi
 from waitress import serve
 
 app = create_app()

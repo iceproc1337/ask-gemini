@@ -2,11 +2,11 @@ import datetime
 import os
 import logging
 from logging.handlers import TimedRotatingFileHandler
+import string
 import google.generativeai as genai
 from threading import Lock
 from datetime import timedelta
-from flask import Flask, request, render_template, make_response, send_from_directory
-from src.security.secure_uuid4 import secure_uuid4
+from flask import Flask, request, make_response, send_from_directory
 from src.security.mask_sensitive_data import mask_sensitive_data
 from src.ChatSession import ChatSession
 
@@ -182,26 +182,6 @@ if os.getenv("FLASK_ENV") != "production":
         return send_from_directory("client/dist", path)
 
 
-def get_user_token():
-    user_token = request.cookies.get("user_token")
-    if not user_token:
-        # No token for this user, generate a new one. Use a cryptographically secure random UUID4.
-        user_token = str(secure_uuid4())
-        logger.debug(f"New user_token: {mask_sensitive_data(user_token)}")
-    return user_token
-
-
-def refresh_user_token(response, user_token):
-    # Refresh user_token. Store it for 7 days
-    response.set_cookie(
-        "user_token",
-        user_token,
-        max_age=timedelta(days=7).total_seconds(),
-        samesite="None",
-        secure=True,
-    )
-
-
 last_cleanup_timestamp = datetime.datetime.now()
 
 
@@ -230,9 +210,29 @@ def cleanup_chat_sessions():
     )
 
 
+def is_token_valid(token):
+    if not token:
+        print("No token provided")
+        return False
+
+    if len(token) != 32:
+        print("Invalid token length")
+        return False
+
+    if not all(c in string.hexdigits for c in token):
+        print("Invalid token format")
+        return False
+
+    return True
+
+
 @app.route("/api/ask-gemini", methods=["POST"])
 def process_user_message_and_return_reply():
-    user_token = get_user_token()
+    user_token = request.form.get("token")
+
+    if not is_token_valid(user_token):
+        return "Invalid token"
+
     logger.debug(f"Access from user: {mask_sensitive_data(user_token)}")
 
     message = request.form.get("message")
@@ -249,15 +249,17 @@ def process_user_message_and_return_reply():
 
     response = make_response(reply)
 
-    # Refresh user_token on each api request
-    refresh_user_token(response, user_token)
-
     return response
 
 
-@app.route("/api/reset", methods=["GET"])
+@app.route("/api/reset", methods=["POST"])
 def reset_user_token():
-    user_token = get_user_token()
+    user_token = request.form.get("token")
+    print(f"Resetting user_token: {mask_sensitive_data(user_token)}")
+
+    if not is_token_valid(user_token):
+        return "Invalid token"
+
     history_reset_reply = (
         f"🤖 History Reset for user: {mask_sensitive_data(user_token)}"
     )
@@ -267,9 +269,6 @@ def reset_user_token():
 
     logger.debug(history_reset_reply)
     response = make_response(history_reset_reply)
-
-    # Refresh user_token on each api request
-    refresh_user_token(response, user_token)
 
     return response
 

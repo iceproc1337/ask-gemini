@@ -45,6 +45,12 @@ function handleFormSubmit(event) {
   const inputField = document.getElementById('input-field');
   const text = inputField.value;
 
+  var token = getTokenFromCookie();
+  if (!token) {
+    token = generateUUID();
+    document.cookie = "token=" + token + ";path=/";
+  }
+
   // Only send request if the user entered something
   if (text.length > 0) {
     addChatBubble(text.toString(), true);
@@ -52,8 +58,6 @@ function handleFormSubmit(event) {
     // Send HTTP POST request to "/ask-gemini" with parameter "query" of value text.toString()
     const xhr = new XMLHttpRequest();
     xhr.open("POST", API_ENDPOINT + "/ask-gemini", true);
-    // xhr.withCredentials = true;
-    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
     xhr.onreadystatechange = function () {
       if (xhr.readyState === 4 && xhr.status === 200) {
         // Handle the response here
@@ -61,7 +65,8 @@ function handleFormSubmit(event) {
         addChatBubble(xhr.responseText, false);
       }
     };
-    xhr.send("message=" + encodeURIComponent(text.toString()));
+    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    xhr.send("message=" + encodeURIComponent(text.toString()) + "&token=" + encodeURIComponent(token));
 
     inputField.value = ''; // clear the input field
   }
@@ -71,10 +76,15 @@ function resetChat() {
   const chatContainer = document.querySelector('.chat-container');
   chatContainer.innerHTML = '';
 
-  // Send HTTP GET request to "/reset"
+  var token = getTokenFromCookie();
+  if (!token) {
+    token = generateUUID();
+    document.cookie = "token=" + token + ";path=/";
+  }
+
+  // Send HTTP POST request to "/reset"
   const xhr = new XMLHttpRequest();
-  xhr.open("GET", API_ENDPOINT + "/reset", true);
-  // xhr.withCredentials = true;
+  xhr.open("POST", API_ENDPOINT + "/reset", true);
   xhr.onreadystatechange = function () {
     if (xhr.readyState === 4 && xhr.status === 200) {
       // Handle the response here
@@ -86,8 +96,55 @@ function resetChat() {
       addChatBubble(xhr.responseText, false);
     }
   };
-  xhr.send();
+  xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+  xhr.send("token=" + encodeURIComponent(token));
 }
+
+function generateRandomHexString(length) {
+  const characters = '0123456789abcdef';
+  let hexString = '';
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * characters.length);
+    hexString += characters[randomIndex];
+  }
+  return hexString;
+}
+
+function generateUUID() {
+  const cryptoObj = window.crypto || window.msCrypto;
+  if (cryptoObj && cryptoObj.getRandomValues) {
+    // Generate a random array of 16 bytes
+    const randomBytes = new Uint8Array(16);
+    cryptoObj.getRandomValues(randomBytes);
+
+    // Set the version (4) and variant (8, 9, A, or B) bits
+    randomBytes[6] = (randomBytes[6] & 0x0f) | 0x40;
+    randomBytes[8] = (randomBytes[8] & 0x3f) | 0x80;
+
+    // Convert the bytes to a hexadecimal string
+    let uuid = "";
+    for (let i = 0; i < 16; i++) {
+      uuid += randomBytes[i].toString(16).padStart(2, "0");
+    }
+
+    return uuid;
+  } else {
+    // Fallback to a simple random string if crypto API is not available
+    return generateRandomHexString();
+  }
+}
+
+function getTokenFromCookie() {
+  const cookies = document.cookie.split(';');
+  for (let i = 0; i < cookies.length; i++) {
+    const cookie = cookies[i].trim();
+    if (cookie.startsWith('token=')) {
+      return cookie.substring('token='.length, cookie.length);
+    }
+  }
+  return null;
+}
+
 
 
 onMounted(() => {
