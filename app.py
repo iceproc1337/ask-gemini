@@ -9,6 +9,8 @@ from datetime import timedelta
 from flask import Flask, request, make_response, send_from_directory
 from src.security.mask_sensitive_data import mask_sensitive_data
 from src.ChatSession import ChatSession
+from werkzeug.exceptions import HTTPException
+from google.generativeai.types import StopCandidateException
 
 chat_sessions_lock = Lock()
 
@@ -18,6 +20,12 @@ GOOGLE_AI_API_KEY = os.getenv("GOOGLE_AI_API_KEY")
 MAX_CHAT_COUNT = os.getenv("MAX_CHAT_COUNT")
 LOG_PATH = os.getenv("LOG_PATH")
 LOG_ROTATE_BACKUP_COUNT = os.getenv("LOG_ROTATE_BACKUP_COUNT")
+
+HARM_CATEGORY_HARASSMENT_THRESHOLD = os.getenv("HARM_CATEGORY_HARASSMENT_THRESHOLD")
+HARM_CATEGORY_HATE_SPEECH_THRESHOLD = os.getenv("HARM_CATEGORY_HATE_SPEECH_THRESHOLD")
+HARM_CATEGORY_SEXUALLY_EXPLICIT_THRESHOLD = os.getenv("HARM_CATEGORY_SEXUALLY_EXPLICIT_THRESHOLD")
+HARM_CATEGORY_DANGEROUS_CONTENT_THRESHOLD = os.getenv("HARM_CATEGORY_DANGEROUS_CONTENT_THRESHOLD")
+
 
 assert GOOGLE_AI_API_KEY, "GOOGLE_AI_API_KEY is not set."
 assert MAX_CHAT_COUNT, "MAX_CHAT_COUNT is not set."
@@ -43,6 +51,12 @@ print(f"GOOGLE_AI_API_KEY: {mask_sensitive_data(GOOGLE_AI_API_KEY)}")
 print(f"MAX_CHAT_COUNT: {MAX_CHAT_COUNT}")
 print(f"LOG_PATH: {LOG_PATH}")
 print(f"LOG_ROTATE_BACKUP_COUNT: {LOG_ROTATE_BACKUP_COUNT}")
+
+print(f"HARM_CATEGORY_HARASSMENT_THRESHOLD: {HARM_CATEGORY_HARASSMENT_THRESHOLD}")
+print(f"HARM_CATEGORY_HATE_SPEECH_THRESHOLD: {HARM_CATEGORY_HATE_SPEECH_THRESHOLD}")
+print(f"HARM_CATEGORY_SEXUALLY_EXPLICIT_THRESHOLD: {HARM_CATEGORY_SEXUALLY_EXPLICIT_THRESHOLD}")
+print(f"HARM_CATEGORY_DANGEROUS_CONTENT_THRESHOLD: {HARM_CATEGORY_DANGEROUS_CONTENT_THRESHOLD}")
+
 
 # ---------------------------------------------Logging-------------------------------------------------
 
@@ -94,17 +108,18 @@ text_generation_config = {
     "max_output_tokens": 512,
 }
 safety_settings = [
-    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": HARM_CATEGORY_HARASSMENT_THRESHOLD},
+    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": HARM_CATEGORY_HATE_SPEECH_THRESHOLD},
     {
         "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-        "threshold": "BLOCK_MEDIUM_AND_ABOVE",
+        "threshold": HARM_CATEGORY_SEXUALLY_EXPLICIT_THRESHOLD,
     },
     {
         "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-        "threshold": "BLOCK_MEDIUM_AND_ABOVE",
+        "threshold": HARM_CATEGORY_DANGEROUS_CONTENT_THRESHOLD,
     },
 ]
+
 text_model = genai.GenerativeModel(
     model_name="gemini-pro",
     generation_config=text_generation_config,
@@ -125,38 +140,62 @@ def send_message_and_get_reply(user_token, message):
 
     chat_log = chat_session.get_chat_log()
     chat = text_model.start_chat(history=chat_log)
-    chat_response = chat.send_message(message)
 
-    if chat_response._error:
-        return "❌" + str(chat_response._error)
-    else:
-        if MAX_CHAT_COUNT > 0:
-            # If history is enabled, stores "part" objects of the chat history of both user and the model.
-            content_from_user = chat.history[-2]
-            content_from_model = chat.history[-1]
+    try:
+        chat_response = chat.send_message(message)
+    except StopCandidateException as e:
+        # Try to return the error message from the API
+        try:
+            exception_message = ""
+            for i in range(len(e.args[0].content.parts)):
+                exception_message += e.args[0].content.parts[i].text
+                if i < len(e.args[0].content.parts) - 1:
+                    exception_message += "\n"
+            logger.error(exception_message)
+            return exception_message
+        except Exception as e:
+            logger.error(e)
+            return str(e)
+    except Exception as e:
+        # For debugging
+        # logger.error(e)
+        # print("-----")
+        # print(dir(e.args[0]))
+        # print("-----")
+        # print(e.args[0])
+        # print("-----")
 
-            # For debugging
-            # logger.debug(f"prompt_object_from_user: {response_content_from_user}")
-            # logger.debug(f"prompt_object_from_model: {response_content_from_model}")
+        # Log whatever error message we can get
+        logger.error(e)
+        return str(e)
 
-            # Calculate the length of the text in the message part of the Content object
-            text_length_sum_from_user = sum(
-                len(part.text) for part in content_from_user.parts
-            )
-            text_length_sum_from_model = sum(
-                len(part.text) for part in content_from_model.parts
-            )
+    if MAX_CHAT_COUNT > 0:
+        # If history is enabled, stores "part" objects of the chat history of both user and the model.
+        content_from_user = chat.history[-2]
+        content_from_model = chat.history[-1]
 
-            # Produce a masked message of the same length for the message of the user and the model
-            masked_message_from_user = text_length_sum_from_user * "*"
-            masked_message_from_model = text_length_sum_from_model * "*"
+        # For debugging
+        # logger.debug(f"prompt_object_from_user: {response_content_from_user}")
+        # logger.debug(f"prompt_object_from_model: {response_content_from_model}")
 
-            logger.debug(
-                f"Storing chat history for user: {mask_sensitive_data(user_token)}, {masked_message_from_user}, {masked_message_from_model}"
-            )
-            chat_session.store_message(content_from_user, content_from_model)
-            chat_session.prune_chat_log(MAX_CHAT_COUNT)
-        return chat_response.text
+        # Calculate the length of the text in the message part of the Content object
+        text_length_sum_from_user = sum(
+            len(part.text) for part in content_from_user.parts
+        )
+        text_length_sum_from_model = sum(
+            len(part.text) for part in content_from_model.parts
+        )
+
+        # Produce a masked message of the same length for the message of the user and the model
+        masked_message_from_user = text_length_sum_from_user * "*"
+        masked_message_from_model = text_length_sum_from_model * "*"
+
+        logger.debug(
+            f"Storing chat history for user: {mask_sensitive_data(user_token)}, {masked_message_from_user}, {masked_message_from_model}"
+        )
+        chat_session.store_message(content_from_user, content_from_model)
+        chat_session.prune_chat_log(MAX_CHAT_COUNT)
+    return chat_response.text
 
 
 # ---------------------------------------------Message History-------------------------------------------------
@@ -271,6 +310,21 @@ def reset_user_token():
     response = make_response(history_reset_reply)
 
     return response
+
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    # pass through HTTP errors
+    if isinstance(e, HTTPException):
+        return e
+
+    # now you're handling non-HTTP exceptions only
+    logger.error(e)
+
+    if hasattr(e, "message") and hasattr(e, "code"):
+        return str(e.message), e.code
+    else:
+        return str(e), 500
 
 
 # ---------------------------------------------Main-------------------------------------------------

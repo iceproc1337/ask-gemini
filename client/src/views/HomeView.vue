@@ -1,12 +1,19 @@
 <script setup>
-import { onBeforeUnmount, onMounted } from "vue";
+import { onBeforeUnmount, onMounted, ref } from "vue";
 import * as marked from "marked";
 
 const API_ENDPOINT = import.meta.env.VITE_API_ENDPOINT;
 
+const isXhrLoading = ref(false);
+
 function scrollChatContainerToBottom() {
   const chatContainer = document.querySelector('.chat-container');
   chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+function isChatContainerScrolledToBottom() {
+  const chatContainer = document.querySelector('.chat-container');
+  return chatContainer.scrollTop + chatContainer.clientHeight >= chatContainer.scrollHeight;
 }
 
 function addChatBubble(text, isUser) {
@@ -17,13 +24,13 @@ function addChatBubble(text, isUser) {
   chatBubble.innerHTML = isUser ? text : marked.parse(text);
 
   // Check if the user is already scrolled to the bottom
-  var chatContainerIsAtBottom = chatContainer.scrollTop + chatContainer.clientHeight >= chatContainer.scrollHeight;
+  var chatContainerIsAtBottom = isChatContainerScrolledToBottom();
 
   chatContainer.appendChild(chatBubble);
 
   // Scroll to bottom if the user was previously already scrolled to the bottom before the new content was added
   if (chatContainerIsAtBottom) {
-    scrollChatContainerToBottom();
+    setTimeout(scrollChatContainerToBottom, 0); // wait for the DOM to update (Vue reactivity)
   }
 }
 
@@ -59,13 +66,25 @@ function handleFormSubmit(event) {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", API_ENDPOINT + "/ask-gemini", true);
     xhr.onreadystatechange = function () {
-      if (xhr.readyState === 4 && xhr.status === 200) {
-        // Handle the response here
-        console.log(xhr.responseText);
-        addChatBubble(xhr.responseText, false);
+      if (xhr.readyState === XMLHttpRequest.DONE) {
+        // Check if the request is finished
+        if (xhr.status === 200) {
+          // Handle the successful response here
+          console.log(xhr.responseText);
+
+          addChatBubble(xhr.responseText, false);
+        } else {
+          // Handle the error response here
+          console.error("XHR request failed with status:", xhr.status);
+
+          addChatBubble(xhr.responseText, false);
+        }
+
+        isXhrLoading.value = false;
       }
     };
     xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    isXhrLoading.value = true;
     xhr.send("message=" + encodeURIComponent(text.toString()) + "&token=" + encodeURIComponent(token));
 
     inputField.value = ''; // clear the input field
@@ -86,17 +105,28 @@ function resetChat() {
   const xhr = new XMLHttpRequest();
   xhr.open("POST", API_ENDPOINT + "/reset", true);
   xhr.onreadystatechange = function () {
-    if (xhr.readyState === 4 && xhr.status === 200) {
-      // Handle the response here
-      console.log(xhr.responseText);
+    if (xhr.readyState === XMLHttpRequest.DONE) {
+      // Check if the request is finished
+      if (xhr.status === 200) {
+        // Handle the successful response here
+        console.log(xhr.responseText);
 
-      // Reset chat container content
-      chatContainer.innerHTML = '';
+        // Reset chat container content
+        chatContainer.innerHTML = '';
 
-      addChatBubble(xhr.responseText, false);
+        addChatBubble(xhr.responseText, false);
+      } else {
+        // Handle the error response here
+        console.error("XHR request failed with status:", xhr.status);
+
+        addChatBubble(xhr.responseText, false);
+      }
+
+      isXhrLoading.value = false;
     }
   };
   xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+  isXhrLoading.value = true;
   xhr.send("token=" + encodeURIComponent(token));
 }
 
@@ -189,7 +219,7 @@ onBeforeUnmount(() => {
       </div>
     </button>
   </div>
-  <div class="chat-container">
+  <div class="chat-container" :class="{ 'chat-loading': isXhrLoading }">
     <div class="chat-bubble chat-bubble-left">
       <p>Hello! I am a large language model, trained by Google. I am designed to understand and generate human
         language, and to perform many kinds of tasks that require language understanding and generation.</p>
